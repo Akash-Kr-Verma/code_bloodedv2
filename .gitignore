@@ -1,0 +1,9 @@
+# Python
+venv/
+__pycache__/
+.mypy_cache/
+
+# Node.js
+node_modules/
+
+.env

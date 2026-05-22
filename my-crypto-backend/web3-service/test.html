@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Backend Web3 Tester</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f4f4f9; color: #333; }
+        button { padding: 12px 24px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 20px; margin-right: 10px; border-radius: 4px; border: 1px solid #ccc; }
+        button:hover { background-color: #ddd; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        #connectBtn { background-color: #f6851b; color: white; border: none; } /* MetaMask Orange */
+        #connectBtn:hover { background-color: #e27613; }
+        #sendToBackendBtn { background-color: #007bff; color: white; border: none; }
+        #sendToBackendBtn:hover { background-color: #0056b3; }
+        #logs { background: #111; color: #0f0; padding: 15px; border-radius: 5px; min-height: 250px; overflow-y: auto; font-size: 14px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <h2>Backend API Wallet Tester</h2>
+    <button id="connectBtn">1. Connect MetaMask</button>
+    <button id="sendToBackendBtn" disabled>2. Send Address to Local Backend</button>
+
+    <div id="logs">System Ready...<br></div>
+
+    <script>
+        const connectBtn = document.getElementById('connectBtn');
+        const sendToBackendBtn = document.getElementById('sendToBackendBtn');
+        const logs = document.getElementById('logs');
+        let userWalletAddress = "";
+
+        function log(msg) { logs.innerHTML += `> ${msg}<br>`; }
+
+        // Step 1: Request account access from the MetaMask extension
+        connectBtn.onclick = async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    log("Requesting MetaMask connection...");
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    userWalletAddress = accounts[0];
+                    log("Connected! Public Address: " + userWalletAddress);
+                    sendToBackendBtn.disabled = false;
+                } catch (error) {
+                    log("Connection Error: " + error.message);
+                }
+            } else {
+                log("MetaMask extension not found! Please open this page in a browser with MetaMask installed.");
+            }
+        };
+
+        // Step 2: Transmit the public key to your Node application
+        sendToBackendBtn.onclick = async () => {
+            log("Preparing payload for API Gateway...");
+            
+            const backendUrl = "http://localhost:3000/api/auth/connect-wallet"; 
+            
+            try {
+                const response = await fetch(backendUrl, {
+                    method: "POST",
+                    mode: "cors", // Force explicit cross-origin resource sharing evaluation
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({ wallet_address: userWalletAddress })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP status error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                log("Backend Verification Success!");
+                log("Returned Payload: " + JSON.stringify(data, null, 2));
+                
+            } catch (error) {
+                log("Backend API Error: " + error.message);
+                log("Check your Node terminal execution console to ensure port 3000 is active.");
+            }
+        };
+    </script>
+</body>
+</html>
